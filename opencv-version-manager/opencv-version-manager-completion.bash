@@ -1,8 +1,8 @@
-if [ -z $OPENCV_VERSIONS_FILE ]; then
-    OPENCV_VERSIONS_FILE=$HOME/etc/opencv-versions
+if [ -z $OPENCV_VERSIONS_PATH ]; then
+    OPENCV_VERSIONS_PATH=$HOME/etc/opencv-versions
 fi
 
-_completion_main ()
+_opencv_version_manager_completion_main ()
 {
     COMPREPLY=()
     local cmd0=${COMP_WORDS[0]}
@@ -12,10 +12,10 @@ _completion_main ()
     elif [[ $COMP_CWORD -eq 2 ]]; then
         local cmd1=${COMP_WORDS[1]}
         if [ $cmd1 = "activate" ]; then
-            versions=$(awk '{ print $1 }' $OPENCV_VERSIONS_FILE)
-            COMPREPLY=( $(compgen -W $versions -- $cur) )
+            versions=($(ls $OPENCV_VERSIONS_PATH/*.conf | sed "s/\s\+/\n/g" | awk '{ cmd="basename "$0; system(cmd) }' | sed "s/.conf$//g"))
+            COMPREPLY=( $(compgen -W "${versions[*]}" -- $cur) )
         fi
     fi
 }
 
-complete -F _completion_main opencv-version-manager
+complete -F _opencv_version_manager_completion_main opencv-version-manager

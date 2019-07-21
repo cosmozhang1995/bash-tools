@@ -1,31 +1,56 @@
 #!/bin/bash
 
-if [ -z $OPENCV_VERSIONS_FILE ]; then
-    OPENCV_VERSIONS_FILE=$HOME/etc/opencv-versions
+if [ -z $OPENCV_VERSIONS_PATH ]; then
+    OPENCV_VERSIONS_PATH=$HOME/etc/opencv-versions
 fi
 
 if [ $1 = "activate" ]; then
-    eval OpenCVDir=$(awk "\$1==$2 { print \$2 }" $OPENCV_VERSIONS_FILE)
-    if [ -z $OpenCVDir ]; then
+    VersionFiles=($(ls $OPENCV_VERSIONS_PATH/*.conf))
+    for versionFilesItem in $VersionFiles; do
+        if [ $(basename $versionFilesItem | sed "s/.conf$//g") = $2 ]; then
+            VersionFile=$versionFilesItem
+        fi
+    done
+    if [ -z $VersionFile ]; then
         echo "Error: Version not recognized."
         exit 1
     fi
-    export OPENCV_DIR=$OpenCVDir
-    export LD_LIBRARY_PATH=$OpenCVDir/lib:$LD_LIBRARY_PATH
-    export C_INCLUDE_PATH=$OpenCVDir/include:$C_INCLUDE_PATH
-    export CPLUS_INCLUDE_PATH=$OpenCVDir/include:$CPLUS_INCLUDE_PATH
+    if [ $OpenCVVersion ]; then
+        source $0 deactivate
+    fi
+    while read line; do
+        split=($(echo $line | sed "s/=/ /g"))
+        pname=$(echo ${split[0]} | sed "s/^\s\+//" | sed "s/\s\+$//")
+        pval=$(echo ${split[1]} | sed "s/^\s\+//" | sed "s/\s\+$//")
+        if [ $pname = "include_path" ]; then OpenCVIncludePath=$pval
+        elif [ $pname = "lib_path" ]; then OpenCVLibPath=$pval
+        fi
+    done < $VersionFile
+    export OpenCVVersion=$2
+    export OpenCVIncludePath
+    export OpenCVLibPath
+    export LIBRARY_PATH=$OpenCVLibPath:$LD_LIBRARY_PATH
+    export LD_LIBRARY_PATH=$OpenCVLibPath:$LD_LIBRARY_PATH
+    export C_INCLUDE_PATH=$OpenCVIncludePath:$C_INCLUDE_PATH
+    export CPLUS_INCLUDE_PATH=$OpenCVIncludePath:$CPLUS_INCLUDE_PATH
 elif [ $1 = "deactivate" ]; then
-    if [ -z $OPENCV_DIR ]; then
+    if [ -z $OpenCVVersion ]; then
         echo "Error: OpenCV not activated."
         exit 1
     fi
-    arr=($(echo $LD_LIBRARY_PATH | sed "s/:/\n/g" | grep -v "$OPENCV_DIR"))
-    export LD_LIBRARY_PATH=$(echo "${arr[*]}" | sed "s/\s\+/:/g")
-    arr=($(echo $C_INCLUDE_PATH | sed "s/:/\n/g" | grep -v "$OPENCV_DIR"))
-    export C_INCLUDE_PATH=$(echo "${arr[*]}" | sed "s/\s\+/:/g")
-    arr=($(echo $CPLUS_INCLUDE_PATH | sed "s/:/\n/g" | grep -v "$OPENCV_DIR"))
-    export CPLUS_INCLUDE_PATH=$(echo "${arr[*]}" | sed "s/\s\+/:/g")
-    export OPENCV_DIR=
+    if [ $OpenCVLibPath ]; then
+        arr=($(echo $LD_LIBRARY_PATH | sed "s/:/\n/g" | grep -v "$OPENCV_DIR"))
+        export LD_LIBRARY_PATH=$(echo "${arr[*]}" | sed "s/\s\+/:/g")
+        arr=($(echo $LIBRARY_PATH | sed "s/:/\n/g" | grep -v "$OPENCV_DIR"))
+        export LIBRARY_PATH=$(echo "${arr[*]}" | sed "s/\s\+/:/g")
+    fi
+    if [ $OpenCVIncludePath ]; then
+        arr=($(echo $C_INCLUDE_PATH | sed "s/:/\n/g" | grep -v "$OPENCV_DIR"))
+        export C_INCLUDE_PATH=$(echo "${arr[*]}" | sed "s/\s\+/:/g")
+        arr=($(echo $CPLUS_INCLUDE_PATH | sed "s/:/\n/g" | grep -v "$OPENCV_DIR"))
+        export CPLUS_INCLUDE_PATH=$(echo "${arr[*]}" | sed "s/\s\+/:/g")
+    fi
+    export OpenCVVersion=
 elif [ $1 = "install" ]; then
     if [ -f $OPENCV_VERSIONS_FILE ]; then
         content=$(awk "\$1 != $2 { print \$0 }" $OPENCV_VERSIONS_FILE)
