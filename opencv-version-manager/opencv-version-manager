@@ -1,15 +1,13 @@
 #!/bin/bash
 
-cmdname=$(basename $0)
-
 if [ -z $OPENCV_VERSIONS_PATH ]; then
     OPENCV_VERSIONS_PATH=$HOME/etc/opencv-versions
 fi
 
-if [[ $1 = "activate" ]]; then
-    VersionFiles=($(ls $OPENCV_VERSIONS_PATH/*.conf))
+func_activate() {
+	VersionFiles=($(ls $OPENCV_VERSIONS_PATH/*.conf))
     for versionFilesItem in $VersionFiles; do
-        if [ $(basename $versionFilesItem | sed "s/.conf$//g") = $2 ]; then
+        if [ $(basename $versionFilesItem | sed "s/.conf$//g") = $1 ]; then
             VersionFile=$versionFilesItem
         fi
     done
@@ -18,7 +16,7 @@ if [[ $1 = "activate" ]]; then
         exit 1
     fi
     if [ $OpenCVVersion ]; then
-        source $0 deactivate
+        func_deactivate
     fi
     while read line; do
         split=($(echo $line | sed "s/=/ /g"))
@@ -28,17 +26,19 @@ if [[ $1 = "activate" ]]; then
         elif [ $pname = "lib_path" ]; then OpenCVLibPath=$pval
         fi
     done < $VersionFile
-    export OpenCVVersion=$2
+    export OpenCVVersion=$1
     export OpenCVIncludePath
     export OpenCVLibPath
-    export LIBRARY_PATH=$OpenCVLibPath:$LD_LIBRARY_PATH
+    export LIBRARY_PATH=$OpenCVLibPath:$LIBRARY_PATH
     export LD_LIBRARY_PATH=$OpenCVLibPath:$LD_LIBRARY_PATH
     export C_INCLUDE_PATH=$OpenCVIncludePath:$C_INCLUDE_PATH
     export CPLUS_INCLUDE_PATH=$OpenCVIncludePath:$CPLUS_INCLUDE_PATH
-elif [[ $1 = "deactivate" ]]; then
+}
+
+func_deactivate() {
     if [ -z $OpenCVVersion ]; then
         echo "Error: OpenCV not activated."
-        exit 1
+        return
     fi
     if [ $OpenCVLibPath ]; then
         arr=($(echo $LD_LIBRARY_PATH | sed "s/:/\n/g" | grep -v "$OPENCV_DIR"))
@@ -53,6 +53,12 @@ elif [[ $1 = "deactivate" ]]; then
         export CPLUS_INCLUDE_PATH=$(echo "${arr[*]}" | sed "s/\s\+/:/g")
     fi
     export OpenCVVersion=
+}
+
+if [[ $1 = "activate" ]]; then
+	func_activate $2
+elif [[ $1 = "deactivate" ]]; then
+	func_deactivate
 else
 	# print help texts
 	cat << EOF
