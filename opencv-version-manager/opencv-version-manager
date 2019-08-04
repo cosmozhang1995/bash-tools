@@ -65,7 +65,7 @@ DESCRIPTION
 CONFIGUATION
 	Information of each OpenCV version should be written in a single configuration file under \$OPENCV_VERSIONS_PATH (default is \$HOME/etc/opencv-versions). File name should be <version>.conf File content should be like this:
 		lib_path=/path/to/directory/of/so/files
-		include_path=/path/to/directory
+		include_path=/path/to/directory/of/header/files
 
 EOF
 fi
