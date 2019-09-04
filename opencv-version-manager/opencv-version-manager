@@ -6,7 +6,7 @@ fi
 
 if [ $1 = "activate" ]; then
     VersionFiles=($(ls $OPENCV_VERSIONS_PATH/*.conf))
-    for versionFilesItem in $VersionFiles; do
+    for versionFilesItem in ${VersionFiles[@]}; do
         if [ $(basename $versionFilesItem | sed "s/.conf$//g") = $2 ]; then
             VersionFile=$versionFilesItem
         fi
